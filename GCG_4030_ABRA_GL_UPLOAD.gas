@@ -1,0 +1,310 @@
+Program.Sub.ScreenSU.Start
+gui.F_Select..create
+gui.F_Select..caption("Select File for Upload")
+gui.F_Select..size(6825,1605)
+gui.F_Select..minx(0)
+gui.F_Select..miny(0)
+gui.F_Select..position(0,0)
+gui.F_Select..event(unload,f_select_unload)
+gui.F_Select..alwaysontop(False)
+gui.F_Select..fontname("Arial")
+gui.F_Select..fontsize(8)
+gui.F_Select..forecolor(0)
+gui.F_Select..fontstyle(False,False,False,False,)
+gui.F_Select..BackColor(-2147483633)
+gui.F_Select..controlbox(True)
+gui.F_Select..maxbutton(False)
+gui.F_Select..minbutton(False)
+gui.F_Select..mousepointer(0)
+gui.F_Select..moveable(True)
+gui.F_Select..sizeable(False)
+gui.F_Select..ShowInTaskBar(True)
+gui.F_Select..titlebar(True)
+gui.F_Select.txtFile.create(textbox,"",True,4245,300,0,235,400,False,0,Arial,8,-2147483643,1)
+gui.F_Select.txtFile.defaultvalue("")
+gui.F_Select.txtFile.controlgroup(0)
+gui.F_Select.cmdSelect.create(button)
+gui.F_Select.cmdSelect.caption("^")
+gui.F_Select.cmdSelect.visible(True)
+gui.F_Select.cmdSelect.size(450,405)
+gui.F_Select.cmdSelect.zorder(0)
+gui.F_Select.cmdSelect.position(4600,360)
+gui.F_Select.cmdSelect.enabled(True)
+gui.F_Select.cmdSelect.fontname("Arial")
+gui.F_Select.cmdSelect.fontsize(8)
+gui.F_Select.cmdSelect.event(click,SelectFile)
+gui.F_Select.cmdSelect.defaultvalue("")
+gui.F_Select.cmdSelect.controlgroup(0)
+gui.F_Select.lblFile.create(label,"File Path:",True,1965,255,1,270,200,False,0,Arial,8,-2147483633,0)
+gui.F_Select.lblFile.defaultvalue("")
+gui.F_Select.lblFile.controlgroup(0)
+gui.F_Select.cmdUpload.create(button)
+gui.F_Select.cmdUpload.caption("Upload")
+gui.F_Select.cmdUpload.visible(True)
+gui.F_Select.cmdUpload.size(855,375)
+gui.F_Select.cmdUpload.zorder(0)
+gui.F_Select.cmdUpload.position(5500,375)
+gui.F_Select.cmdUpload.enabled(True)
+gui.F_Select.cmdUpload.fontname("Arial")
+gui.F_Select.cmdUpload.fontsize(8)
+gui.F_Select.cmdUpload.event(click,FormatFile)
+gui.F_Select.cmdUpload.defaultvalue("")
+gui.F_Select.cmdUpload.controlgroup(0)
+
+
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+
+Variable.Global.sFile.Declare(String)
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+F.Intrinsic.Control.SetErrorHandler("Main_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+
+'2.ProgramSpecification
+'
+'---A.ProgramwilluseuploadtableUPLGDETL
+'---C.ProgramwillsaveuploadfileasGlobal\Files\GLDETAIL.txt
+'---B.ProgramwilluseCallwrapper50tocallUPLGDETL
+'
+F.ODBC.Connection!conX.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+
+Gui.F_Select..Show
+F.Intrinsic.Control.CallSub(Selectfile)
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Main_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4030_ABRA_GL_UPLOAD.gas",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+Function.Intrinsic.Control.EndIf
+
+
+Program.Sub.Main.End
+
+Program.Sub.Upload.Start
+F.Intrinsic.Control.SetErrorHandler("Upload_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+V.Local.i.Declare(Long)
+V.Local.sFile.Declare(String)
+V.Local.sFileCopy.Declare(String)
+V.Local.bExists.Declare(Boolean)
+
+'1Shot Callwrapper for GL Detail
+F.Global.General.CallWrapperSync(50,"UPLGDETL")
+
+'View Error Log Option
+F.Intrinsic.UI.Msgbox("Upload Completed Successfully? Press Yes to End, No to view Error Log","",4,V.Local.i)
+F.Intrinsic.Control.If(V.Local.i,=,7)
+	'get error file and convert to string variable and load in MsgBox
+	F.Intrinsic.String.Build("{0}\TEMP\UPLGDETL{1}",V.Caller.GlobalDir,V.Caller.Terminal,V.local.sFile)
+	F.Intrinsic.File.Exists(V.Local.sFile,V.Local.bExists)
+	F.Intrinsic.Control.If(V.Local.bExists,=,False)
+		F.Intrinsic.UI.Msgbox("No Error Log Detected")
+		F.Intrinsic.Control.End
+	F.Intrinsic.Control.Else
+		F.Intrinsic.File.File2String(V.Local.sFile,V.Local.sFileCopy)
+		F.Intrinsic.UI.MsgBoxExt("Error Log",V.Local.sFileCopy,"",10000,5000)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Upload_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4030_ABRA_GL_UPLOAD.gas",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+Function.Intrinsic.Control.EndIf
+
+
+Program.Sub.Upload.End
+
+Program.Sub.FormatFile.Start
+F.Intrinsic.Control.SetErrorHandler("FormatFile_Err")
+F.Intrinsic.Control.ClearErrors
+'Coded BY SFF
+'2/27/2015
+'---A.GL Account Number="A" joined with "B" with a hypen.
+'---B.Post Date="D"
+'---C.Transaction Batch Number=Read company option for next "J" Batch Number. Need to update afterwards.(V_OP_HEADER.F_NUMERIC(ID=140002 SEQ=0001))
+'---D.Batch Line=Leave blank.Will be auto-numbered by upload
+'---E.Reference="PAYROLL"
+'---F.Amount="G"
+'---G.Description="I"with"Payroll"removed from string
+'---H.Application Type="GL"
+'---I.Transaction Type="20"
+
+V.Local.sError.Declare(String)
+V.Local.sRet.Declare(String)
+V.Local.i.Declare(Float)
+V.Local.sRet2.Declare(String)
+V.Local.sSql.Declare(String)
+V.Local.sTemp.Declare(String)
+V.Local.sTempFull.Declare(String)
+V.Local.sRow.Declare(String)
+V.Local.sCol.Declare(String)
+V.Local.sBatch.Declare(String)
+V.Local.iRow.Declare(Float)
+V.Local.dDate.Declare(Date)
+V.Local.bExists.Declare(Boolean)
+
+F.Intrinsic.String.Build("Continue Uploading File:{0} to General Ledger Detail?",V.Global.sFile,V.Local.sRet)
+'Cancel Upload if User Chooses No to Popup Msg
+F.Intrinsic.UI.Msgbox(V.Local.sRet,"Are You Sure?",3,V.Local.i)
+F.Intrinsic.Control.If(V.Local.i,=,7)
+	F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.Endif
+
+'Get Batch Number
+V.Local.sSql.Set("select max(cast(substring(BATCH_NUM,2,4) as numeric(4,0))) +1 as BATCH from "GL_DETAIL" where BATCH_NUM Like 'T%'")
+F.ODBC.Connection!conX.OpenRecordsetRO("rst",V.Local.sSql)
+F.Intrinsic.Control.If(V.ODBC.conX!rst.EOF,<>,True)
+	F.Intrinsic.String.Build("T{0}",V.ODBC.conX!rst.FieldValTrim!BATCH,V.Local.sBatch)
+F.Intrinsic.Control.Else
+	F.Intrinsic.UI.Msgbox("Error getting Batch Number","Please Check General Ledger Company Options")
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.EndIf
+F.ODBC.conX!rst.Close
+
+Gui.F_Select..Visible(False)
+
+'continue formatting file if user chooses yes
+F.Intrinsic.UI.InvokeWaitDialog("Loading Upload File....Please Wait","")
+'Open Excel spreadsheet
+F.Automation.MSExcel.CreateAppObject("MSExcel")
+F.Automation.MSExcel.OpenWorkbook("MSExcel","Workbook",V.Global.sFile)
+F.Automation.MSExcel.OpenWorksheet("Workbook","Worksheet",1)
+F.Automation.MSExcel.RowCount("Worksheet",V.Local.iRow)
+F.Automation.MSExcel.DestroyAllObjects("MSExcel","Workbook","Worksheet")
+F.Automation.MSExcel.ReadSpreadsheet(V.Global.sFile,10,V.Local.iRow,V.Global.sFile)
+F.Intrinsic.String.Split(V.Global.sFile,"$!$",V.Local.sRow)
+F.Intrinsic.Control.For(V.Local.i,0,V.Local.sRow.UBound,1)
+	F.Intrinsic.UI.ChangeWaitStatus("Generating Upload from File...",V.Local.i,V.Local.sRow.LBound,V.Local.sRow.UBound)
+	F.Intrinsic.String.Split(V.Local.sRow(v.Local.i),"*!*",V.Local.sCol)
+
+	'GL Account
+	F.Intrinsic.String.Build("{0}-{1}",V.Local.sCol(0).Trim,V.Local.sCol(1).Trim,V.Local.sRet)
+	F.Intrinsic.String.Build("{0}",V.Local.sRet,V.Local.sTemp)
+	F.Intrinsic.String.RPad(V.Local.sTemp," ",15,V.Local.sTemp)
+	'Post Date
+	F.Intrinsic.Date.ConvertDString(V.Local.sCol(3).Trim,"MMDDYYYY",V.Local.dDate)
+	F.Intrinsic.String.Format(V.Local.dDate,"YYYYMMDD",V.Local.sRet)
+	F.Intrinsic.String.Build("{0}{1}",V.Local.sTemp,V.Local.sRet,V.Local.sTemp)
+	'Batch Number
+	F.Intrinsic.String.Build("{0}{1}",V.Local.sTemp,V.Local.sBatch,V.Local.sTemp)
+	F.Intrinsic.String.RPad(V.Local.sTemp," ",40,V.Local.sTemp)
+	'Reference
+	F.Intrinsic.String.Build("{0}PAYROLL",V.Local.sTemp,V.Local.sTemp)
+	F.Intrinsic.String.RPad(V.Local.sTemp," ",55,V.Local.sTemp)
+	'Amount
+	F.Intrinsic.String.IsInString(V.Local.sCol(6).Trim,"-",True,V.Local.bExists)
+	F.Intrinsic.Control.If(V.Local.bExists,<>,True)
+		F.Intrinsic.String.RPad(V.Local.sCol(6).Trim," ",16,V.Local.sRet)
+		F.Intrinsic.String.Build("{0}",V.Local.sRet,V.Local.sRet)
+	F.Intrinsic.Control.Else
+		F.Intrinsic.String.Replace(V.Local.sCol(6).Trim,"-","",V.Local.sRet)
+		F.Intrinsic.String.RPad(V.Local.sRet," ",15,V.Local.sRet)
+		F.Intrinsic.String.Build("-{0}",V.Local.sRet,V.Local.sRet)
+	F.Intrinsic.Control.EndIf
+	F.Intrinsic.String.Build("{0}{1}",V.Local.sTemp,V.Local.sRet,V.Local.sTemp)
+	'Description
+	F.Intrinsic.String.Replace(V.Local.sCol(8).Trim,"Payroll","",V.Local.sRet)
+	F.Intrinsic.String.Build("{0}{1}",V.Local.sTemp,V.Local.sRet.Trim,V.Local.sTemp)
+	F.Intrinsic.String.RPad(V.Local.sTemp," ",101,V.Local.sTemp)
+	'Appliation Type
+	F.Intrinsic.String.Build("{0}GL",V.Local.sTemp,V.Local.sTemp)
+	'Transaction Type
+	F.Intrinsic.String.Build("{0}20",V.Local.sTemp,V.Local.sTemp)
+	
+	F.Intrinsic.String.Build("{0}{1}{2}",V.Local.sTempFull,V.Local.sTemp,V.Ambient.NewLine,V.Local.sTempFull)
+F.Intrinsic.Control.Next(V.Local.i)
+
+F.Intrinsic.String.Build("{0}\GLDETAIL.txt",V.Caller.FilesDir,V.Global.sFile)
+F.Intrinsic.File.String2File(V.Global.sFile,V.Local.sTempFull)
+
+F.Intrinsic.UI.CloseWaitDialog
+F.Intrinsic.Control.CallSub(Upload)
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("FormatFile_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4030_ABRA_GL_UPLOAD.gas",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+Function.Intrinsic.Control.EndIf
+
+
+Program.Sub.FormatFile.End
+
+Program.Sub.SelectFile.Start
+F.Intrinsic.Control.SetErrorHandler("SelectFile_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+
+Function.Intrinsic.UI.ShowOpenFileDialog(V.Caller.FilesDir,"","",V.Global.sFile)
+F.Intrinsic.Control.If(V.Global.sFile,<>,"***CANCEL***")
+	Gui.F_Select.txtFile.Text(V.Global.sFile)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("SelectFile_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4030_ABRA_GL_UPLOAD.gas",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+Function.Intrinsic.Control.EndIf
+
+
+Program.Sub.SelectFile.End
+
+program.sub.f_select_unload.start
+F.Intrinsic.Control.End
+
+program.sub.f_select_unload.end
+
+Program.Sub.Comments.Start
+${$0$}$GCG_ABRA_GL_UPLOAD$}$supervsr$}$2/26/2015
+${$3$}$0$}$$}$-1$}$-1$}$$}$1/1/1900$}$Upload from .csv file from ABRA to GL.
+
+Read .csv file and upload to GL using Data Conversion Mapper for GL Master.
+
+1. File Layout (NO COLUMN HEADERS)
+---A. GL Account Part 1 ("A" and "B" will be joined together to form the GL Account Number)
+---B. GL Account Part 2 ("A" and "B" will be joined together to form the GL Account Number)
+---C. NOT USED
+---D. Post Date
+---E. Post Time
+---F. NOT USED
+---G. Amount
+---H. NOT USED
+---I. Description (Remove Payroll from string and truncate to 30 characters)
+---J. NOT USED
+
+
+2. Program Specification
+
+---A. Program will use upload table UPLGDETL
+---C. Program will save upload file as Global\Files\GLDETAIL.txt
+---B. Program will use Callwrapper 50 to call UPLGDETL
+
+3. Data Mapper Cross Reference
+
+---A. GL Account Number = "A" joined with "B" with a hypen.
+---B. Post Date = "D"
+---C. Transaction Batch Number = Read company option for next "J" Batch Number. Need to update afterwards. (V_OP_HEADER.F_NUMERIC (ID = 140002 SEQ = 0001))
+---D. Batch Line = Leave blank. Will be auto-numbered by upload
+---E. Reference = "PAYROLL"
+---F. Amount = "G"
+---G. Description = "I" with "Payroll" removed from string
+---H. Application Type = "GL"
+---I. Transaction Type = "20"
+
+Program.Sub.Comments.End
+
